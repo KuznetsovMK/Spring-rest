@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.gb.gbrest.dao.ProductDao;
+import ru.gb.gbrest.dto.ProductDto;
 import ru.gb.gbrest.entity.Product;
 import ru.gb.gbrest.entity.enums.Status;
 
@@ -23,19 +24,23 @@ public class ProductService {
 
     private final ProductDao productDao;
 
-    public Product save(Product product) {
-        if (product.getId() != null) {
-            Optional<Product> productOptional = productDao.findById(product.getId());
-            if (productOptional.isPresent()) {
-                Product productFromDB = productOptional.get();
-                productFromDB.setTitle(product.getTitle());
-                productFromDB.setManufactureDate(product.getManufactureDate());
-                productFromDB.setStatus(product.getStatus());
-                productFromDB.setCost(product.getCost());
-                return productDao.save(productFromDB);
-            }
+    public ProductDto save(ProductDto productDto) {
+        Product savingProduct;
+        if (productDto.getId() != null) {
+            Optional<Product> productFromDbOptional = productDao.findById(productDto.getId());
+            savingProduct = productFromDbOptional.orElseGet(Product::new);
+        } else {
+            savingProduct = new Product();
         }
-        return productDao.save(product);
+
+        savingProduct.setTitle(productDto.getTitle());
+        savingProduct.setManufactureDate(productDto.getManufactureDate());
+        savingProduct.setStatus(productDto.getStatus());
+        savingProduct.setCost(productDto.getCost());
+        savingProduct = productDao.save(savingProduct);
+        productDto.setId(savingProduct.getId());
+        return productDto;
+
     }
 
     @Transactional(readOnly = true)
@@ -54,10 +59,6 @@ public class ProductService {
             log.error("No such id in DB: " + e.getMessage());
         }
     }
-
-
-
-
 
 
     @Transactional(propagation = Propagation.NEVER, isolation = Isolation.DEFAULT)
